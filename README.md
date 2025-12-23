@@ -1,2 +1,2 @@
 # calendo
-A calendar-based application integrating D2L and the ChatGPT API to enhance academic productivity and task management.
+A calendar-based application integrating D2L and the OpenAis API to enhance academic productivity and task management.

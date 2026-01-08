@@ -1,0 +1,35 @@
+{
+  "pages": {
+    "/(calendar)/month-view/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(calendar)/month-view/page.js"
+    ],
+    "/(calendar)/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(calendar)/layout.js"
+    ],
+    "/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/layout.css",
+      "static/chunks/app/layout.js"
+    ],
+    "/(calendar)/week-view/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(calendar)/week-view/page.js"
+    ],
+    "/(calendar)/year-view/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(calendar)/year-view/page.js"
+    ],
+    "/(calendar)/day-view/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(calendar)/day-view/page.js"
+    ]
+  }
+}

@@ -2,7 +2,10 @@ import { z } from "zod";
 
 export const eventSchema = z
   .object({
-    user: z.string(),
+    user: z.object({
+      name: z.string(),
+      email: z.string().email(),
+    }),
     title: z.string().min(1, "Title is required"),
     description: z.string().min(1, "Description is required"),
     startDate: z.date({ required_error: "Start date is required" }),

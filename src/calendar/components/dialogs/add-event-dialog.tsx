@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { AlertTriangle } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useDisclosure } from "@/hooks/use-disclosure";
@@ -14,7 +13,7 @@ import { TimeInput } from "@/components/ui/time-input";
 import { SingleDayPicker } from "@/components/ui/single-day-picker";
 import { Form, FormField, FormLabel, FormItem, FormControl, FormMessage } from "@/components/ui/form";
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogHeader, DialogClose, DialogContent, DialogTrigger, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogHeader, DialogClose, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
 
 import { eventSchema } from "@/calendar/schemas";
 
@@ -30,25 +29,54 @@ interface IProps {
 export function AddEventDialog({ children, startDate, startTime }: IProps) {
   const { isOpen, onClose, onToggle } = useDisclosure();
 
+  // Ensure default values match the schema types
+  const _defaultStartDate = startDate ?? new Date();
+  const _defaultStartTime = startTime ?? { hour: 9, minute: 0 };
+  const _defaultEndDate = _defaultStartDate;
+  const _defaultEndTime = { hour: (_defaultStartTime.hour + 1) % 24, minute: _defaultStartTime.minute };
+
   const form = useForm<TEventFormData>({
     resolver: zodResolver(eventSchema),
     defaultValues: {
       title: "",
       description: "",
-      startDate: typeof startDate !== "undefined" ? startDate : undefined,
-      startTime: typeof startTime !== "undefined" ? startTime : undefined,
+      startDate: _defaultStartDate,
+      startTime: _defaultStartTime,
+      endDate: _defaultEndDate,
+      endTime: _defaultEndTime,
+      color: "blue",
+      user: { name: "Aayana", email: "aayanadited@gmail.com" },
     },
   });
 
-  const onSubmit = (_values: TEventFormData) => {
+  const onSubmit = (values: TEventFormData) => {
+    console.log("✅ SUBMIT CALLED", values);
+    alert("Event created");
     onClose();
     form.reset();
   };
 
+  const handleFormSubmit = (e: React.FormEvent) => {
+    console.log("🔥 Form submit event fired");
+    e.preventDefault();
+    form.handleSubmit(onSubmit)(e);
+  };
+
+  useEffect(() => {
+    console.log("📊 Form errors:", form.formState.errors);
+    console.log("📊 Form is valid:", form.formState.isValid);
+  }, [form.formState.errors, form.formState.isValid]);
+
   useEffect(() => {
     form.reset({
+      title: "",
+      description: "",
       startDate,
       startTime,
+      endDate: startDate,
+      endTime: startTime ? { hour: (startTime.hour + 1) % 24, minute: startTime.minute } : { hour: 10, minute: 0 },
+      color: "blue",
+      user: { name: "Aayana", email: "aayanadited@gmail.com" },
     });
   }, [startDate, startTime, form]);
 
@@ -59,15 +87,10 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add New Event</DialogTitle>
-          <DialogDescription>
-            <AlertTriangle className="mr-1 inline-block size-4 text-yellow-500" />
-            This form is for demonstration purposes only and will not actually create an event. In a real application, submit the form to the backend API to
-            save the event.
-          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form id="event-form" onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+          <form onSubmit={handleFormSubmit} className="grid gap-4 py-4">
             <FormField
               control={form.control}
               name="title"
@@ -166,7 +189,7 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
                       </SelectTrigger>
 
                       <SelectContent>
-                        {["blue","green","red","yellow","purple","orange","gray"].map(color => (
+                        {["blue", "green", "red", "yellow", "purple", "orange", "gray"].map(color => (
                           <SelectItem key={color} value={color}>
                             <div className="flex items-center gap-2">
                               <div className={`size-3.5 rounded-full bg-${color}-600`} />
@@ -195,20 +218,39 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
                 </FormItem>
               )}
             />
+
+            <div className="flex justify-end gap-2 pt-4">
+              <DialogClose asChild>
+                <Button type="button" variant="outline" onClick={() => console.log("Cancel clicked")}>
+                  Cancel
+                </Button>
+              </DialogClose>
+
+              <Button
+                type="button"
+                onClick={e => {
+                  console.log("🖱️ Button clicked!");
+                  e.preventDefault();
+                  console.log("Form values:", form.getValues());
+                  console.log("Form errors:", form.formState.errors);
+                  form.handleSubmit(
+                    data => {
+                      console.log("✅ SUCCESS:", data);
+                      alert("Event created");
+                      onClose();
+                      form.reset();
+                    },
+                    errors => {
+                      console.log("❌ VALIDATION ERRORS:", errors);
+                    }
+                  )();
+                }}
+              >
+                Create Event
+              </Button>
+            </div>
           </form>
         </Form>
-
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="outline">
-              Cancel
-            </Button>
-          </DialogClose>
-
-          <Button form="event-form" type="submit">
-            Create Event
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

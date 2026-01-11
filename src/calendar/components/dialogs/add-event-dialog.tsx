@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useDisclosure } from "@/hooks/use-disclosure";
+import { useCalendar } from "@/calendar/contexts/calendar-context";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,8 +29,22 @@ interface IProps {
 
 export function AddEventDialog({ children, startDate, startTime }: IProps) {
   const { isOpen, onClose, onToggle } = useDisclosure();
+  const { addEvent, users, selectedUserId } = useCalendar();
 
-  // Ensure default values match the schema types
+  // Log selectedUserId for debugging
+  useEffect(() => {
+    console.log("📅 Current selectedUserId:", selectedUserId);
+  }, [selectedUserId]);
+
+  // Define the default user (always the same as requested)
+  const defaultUser = {
+    id: "1",
+    name: "Aayana",
+    email: "aayanadited@gmail.com",
+    picturePath: "",
+  };
+
+  // Ensure default values match the schema types with full user object
   const _defaultStartDate = startDate ?? new Date();
   const _defaultStartTime = startTime ?? { hour: 9, minute: 0 };
   const _defaultEndDate = _defaultStartDate;
@@ -45,25 +60,49 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
       endDate: _defaultEndDate,
       endTime: _defaultEndTime,
       color: "blue",
-      user: { name: "Aayana", email: "aayanadited@gmail.com" },
+      user: defaultUser, // Full user object to pass validation
     },
   });
 
   const onSubmit = (values: TEventFormData) => {
     console.log("✅ SUBMIT CALLED", values);
-    alert("Event created");
+    console.log("📊 Form is valid on submit:", form.formState.isValid);
+
+    // Use the default user (always the same)
+    const newEvent = {
+      id: Date.now(), // Generate a unique numeric ID
+      title: values.title,
+      description: values.description,
+      color: values.color,
+      user: defaultUser, // Always assign to the same user
+      startDate: new Date(
+        values.startDate.getFullYear(),
+        values.startDate.getMonth(),
+        values.startDate.getDate(),
+        values.startTime.hour,
+        values.startTime.minute
+      ).toISOString(),
+      endDate: new Date(
+        values.endDate.getFullYear(),
+        values.endDate.getMonth(),
+        values.endDate.getDate(),
+        values.endTime.hour,
+        values.endTime.minute
+      ).toISOString(),
+    };
+
+    console.log("📅 NEW EVENT CREATED:", newEvent);
+
+    // Add the new event using the context's addEvent function
+    addEvent(newEvent);
+
+    alert("Event created successfully!");
     onClose();
     form.reset();
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
-    console.log("🔥 Form submit event fired");
-    e.preventDefault();
-    form.handleSubmit(onSubmit)(e);
-  };
-
   useEffect(() => {
-    console.log("📊 Form errors:", form.formState.errors);
+    console.log("📊 Form errors:", JSON.stringify(form.formState.errors, null, 2));
     console.log("📊 Form is valid:", form.formState.isValid);
   }, [form.formState.errors, form.formState.isValid]);
 
@@ -71,12 +110,12 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
     form.reset({
       title: "",
       description: "",
-      startDate,
-      startTime,
-      endDate: startDate,
+      startDate: startDate ?? new Date(),
+      startTime: startTime ?? { hour: 9, minute: 0 },
+      endDate: startDate ?? new Date(),
       endTime: startTime ? { hour: (startTime.hour + 1) % 24, minute: startTime.minute } : { hour: 10, minute: 0 },
       color: "blue",
-      user: { name: "Aayana", email: "aayanadited@gmail.com" },
+      user: defaultUser, // Full user object
     });
   }, [startDate, startTime, form]);
 
@@ -90,7 +129,7 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={handleFormSubmit} className="grid gap-4 py-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
             <FormField
               control={form.control}
               name="title"
@@ -226,28 +265,7 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
                 </Button>
               </DialogClose>
 
-              <Button
-                type="button"
-                onClick={e => {
-                  console.log("🖱️ Button clicked!");
-                  e.preventDefault();
-                  console.log("Form values:", form.getValues());
-                  console.log("Form errors:", form.formState.errors);
-                  form.handleSubmit(
-                    data => {
-                      console.log("✅ SUCCESS:", data);
-                      alert("Event created");
-                      onClose();
-                      form.reset();
-                    },
-                    errors => {
-                      console.log("❌ VALIDATION ERRORS:", errors);
-                    }
-                  )();
-                }}
-              >
-                Create Event
-              </Button>
+              <Button type="submit">Create Event</Button>
             </div>
           </form>
         </Form>

@@ -20,6 +20,7 @@ interface ICalendarContext {
   setVisibleHours: Dispatch<SetStateAction<TVisibleHours>>;
   events: IEvent[];
   setLocalEvents: Dispatch<SetStateAction<IEvent[]>>;
+  addEvent: (event: IEvent) => void;
 }
 
 const CalendarContext = createContext({} as ICalendarContext);
@@ -55,6 +56,25 @@ export function CalendarProvider({ children, users, events }: { children: React.
     setSelectedDate(date);
   };
 
+  const addEvent = (event: IEvent) => {
+    setLocalEvents(prev => {
+      console.log("CalendarProvider - addEvent called. Before:", prev.length);
+      const updated = [...prev, event];
+      console.log("CalendarProvider - addEvent. After:", updated.length, updated);
+
+      if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+        try {
+          localStorage.setItem("lastAddedEventId", String(event.id));
+          console.log("CalendarProvider - stored lastAddedEventId:", event.id);
+        } catch (e) {
+          console.warn("CalendarProvider - unable to write lastAddedEventId to localStorage");
+        }
+      }
+
+      return updated;
+    });
+  };
+
   return (
     <CalendarContext.Provider
       value={{
@@ -72,6 +92,7 @@ export function CalendarProvider({ children, users, events }: { children: React.
         // If you go to the refetch approach, you can remove the localEvents and pass the events directly
         events: localEvents,
         setLocalEvents,
+        addEvent,
       }}
     >
       {children}

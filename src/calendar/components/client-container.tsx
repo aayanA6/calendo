@@ -76,6 +76,11 @@ export function ClientContainer({ view }: IProps) {
     return isSameDay(startDate, endDate);
   });
 
+  // Debugging: log filtered events and selected date to help verify that newly created events are visible
+  if (process.env.NODE_ENV !== "production") {
+    console.log("📊 ClientContainer - view:", view, "selectedDate:", selectedDate.toISOString(), "filtered count:", filteredEvents.length);
+  }
+
   const multiDayEvents = filteredEvents.filter(event => {
     const startDate = parseISO(event.startDate);
     const endDate = parseISO(event.endDate);
@@ -88,6 +93,30 @@ export function ClientContainer({ view }: IProps) {
   const eventStartDates = useMemo(() => {
     return filteredEvents.map(event => ({ ...event, endDate: event.startDate }));
   }, [filteredEvents]);
+
+  // Dev-only: check whether the lastAddedEventId exists in filteredEvents and log helpful info
+  if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
+    try {
+      const lastAdded = localStorage.getItem("lastAddedEventId");
+      if (lastAdded) {
+        const id = Number(lastAdded);
+        const found = filteredEvents.some(e => e.id === id);
+        console.log("DEBUG: lastAddedEventId:", id, "foundInFilteredEvents:", found, "filteredEventsCount:", filteredEvents.length);
+        if (!found) {
+          const globalFound = events.some(e => e.id === id);
+          console.log("DEBUG: lastAdded present in ALL events?", globalFound);
+          if (globalFound) {
+            const ev = events.find(e => e.id === id);
+            console.log("DEBUG: lastAdded event object:", ev);
+            console.log("DEBUG: selectedDate:", selectedDate.toISOString());
+            console.log("DEBUG: event start:", ev?.startDate, "event end:", ev?.endDate);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("DEBUG: error reading lastAddedEventId", err);
+    }
+  }
 
   return (
     <div className="overflow-hidden rounded-xl border">

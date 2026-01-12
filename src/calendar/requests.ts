@@ -4,7 +4,7 @@ export const getEvents = async () => {
   // TO DO: implement this
   // Increase the delay to better see the loading state
   // await new Promise(resolve => setTimeout(resolve, 800));
-  return CALENDAR_ITEMS_MOCK;
+  return []; // Changed from CALENDAR_ITEMS_MOCK to empty array
 };
 
 export const getUsers = async () => {

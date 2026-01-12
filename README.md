@@ -32,12 +32,37 @@ AI Calendar helps users plan their time more effectively by combining a clean, m
 ## Project Structure
 
 ```
-/app
-  /components
-  /hooks
-  /styles
-  /utils
-/public
+CALENDO/
+├─ .next/
+├─ node_modules/
+├─ public/
+├─ src/
+│  ├─ app/
+│  │  ├─ (calendar)/
+│  │  ├─ calendar/
+│  │  ├─ components/
+│  │  ├─ constants/
+│  │  ├─ cookies/
+│  │  ├─ hooks/
+│  │  ├─ lib/
+│  │  ├─ styles/
+│  │  ├─ types.ts
+│  │  ├─ favicon.ico
+│  │  └─ layout.tsx
+│  └─ islamstuff/
+├─ .eslintrc.json
+├─ .gitignore
+├─ .prettierrc
+├─ components.json
+├─ LICENSE
+├─ next-env.d.ts
+├─ next.config.mjs
+├─ package.json
+├─ package-lock.json
+├─ postcss.config.mjs
+├─ README.md
+├─ tailwind.config.ts
+└─ tsconfig.json
 ```
 
 ## Getting Started

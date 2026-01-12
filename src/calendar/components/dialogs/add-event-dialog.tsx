@@ -96,7 +96,6 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
     // Add the new event using the context's addEvent function
     addEvent(newEvent);
 
-    alert("Event created successfully!");
     onClose();
     form.reset();
   };

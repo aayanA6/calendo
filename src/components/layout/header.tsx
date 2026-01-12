@@ -15,15 +15,6 @@ export function Header() {
         </div>
 
         <div className="hidden items-center gap-4 md:flex">
-          <Link
-            href="https://github.com/aayanA6/calendo"
-            target="_blank"
-            className="inline-flex gap-0.5 text-sm hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            View on GitHub
-            <ArrowUpRight size={14} className="text-foreground" />
-          </Link>
-
           <div className="flex items-center gap-2">
             <ToggleTheme />
           </div>

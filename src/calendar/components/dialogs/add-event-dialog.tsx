@@ -139,11 +139,7 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
                     render={({ field }) => (
                       <FormItem className="flex-1">
                         <FormLabel>Start Date</FormLabel>
-                        <SingleDayPicker
-                          value={field.value}
-                          onSelect={d => field.onChange(d as Date)}
-                          placeholder="Select start date"
-                        />
+                        <SingleDayPicker value={field.value} onSelect={d => field.onChange(d as Date)} placeholder="Select start date" />
                       </FormItem>
                     )}
                   />
@@ -167,11 +163,7 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
                     render={({ field }) => (
                       <FormItem className="flex-1">
                         <FormLabel>End Date</FormLabel>
-                        <SingleDayPicker
-                          value={field.value}
-                          onSelect={d => field.onChange(d as Date)}
-                          placeholder="Select end date"
-                        />
+                        <SingleDayPicker value={field.value} onSelect={d => field.onChange(d as Date)} placeholder="Select end date" />
                       </FormItem>
                     )}
                   />

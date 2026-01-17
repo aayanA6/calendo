@@ -6,9 +6,10 @@ import Tesseract from "tesseract.js";
 
 interface MyDropzoneProps {
   onTextExtracted?: (text: string) => void;
+  onEventsReady?: () => void;
 }
 
-export default function MyDropzone({ onTextExtracted }: MyDropzoneProps) {
+export default function MyDropzone({ onTextExtracted, onEventsReady }: MyDropzoneProps) {
   const [text, setText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -30,6 +31,7 @@ export default function MyDropzone({ onTextExtracted }: MyDropzoneProps) {
 
       const data = await response.json();
       setSaved(true);
+      onEventsReady?.(); // Notify that text is saved and ready for extraction
       console.log("File saved to:", data.path);
     } catch (err) {
       setError("Failed to save file to server");
@@ -104,7 +106,7 @@ export default function MyDropzone({ onTextExtracted }: MyDropzoneProps) {
         setIsLoading(false);
       }
     },
-    [onTextExtracted]
+    [onTextExtracted, onEventsReady]
   );
 
   const { getRootProps, getInputProps } = useDropzone({ onDrop });

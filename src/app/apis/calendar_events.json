@@ -1,0 +1,5 @@
+{
+  "events": [],
+  "error": "No dates found",
+  "reason": "The text does not contain any recognizable calendar dates. Events cannot be extracted without specific dates like 'January 15, 2026' or '01/15/2026'."
+}

@@ -1,107 +1,198 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
-
-import type { Dispatch, SetStateAction } from "react";
-import type { IEvent, IUser } from "@/calendar/interfaces";
-import type { TBadgeVariant, TVisibleHours, TWorkingHours } from "@/calendar/types";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import { IEvent } from "@/calendar/types";
 
 interface ICalendarContext {
-  selectedDate: Date;
-  setSelectedDate: (date: Date | undefined) => void;
-  selectedUserId: IUser["id"] | "all";
-  setSelectedUserId: (userId: IUser["id"] | "all") => void;
-  badgeVariant: TBadgeVariant;
-  setBadgeVariant: (variant: TBadgeVariant) => void;
-  users: IUser[];
-  workingHours: TWorkingHours;
-  setWorkingHours: Dispatch<SetStateAction<TWorkingHours>>;
-  visibleHours: TVisibleHours;
-  setVisibleHours: Dispatch<SetStateAction<TVisibleHours>>;
   events: IEvent[];
-  setLocalEvents: Dispatch<SetStateAction<IEvent[]>>;
-  addEvent: (event: IEvent) => void;
+  addEvent: (event: Omit<IEvent, "id">) => Promise<void>;
+  updateEvent: (id: number, event: Partial<IEvent>) => Promise<void>;
+  deleteEvent: (id: number) => Promise<void>;
+  isLoading: boolean;
+  user: any;
+  signOut: () => Promise<void>;
+
+  selectedDate: Date;
+  setSelectedDate: (date: Date) => void;
+  selectedUserId: string;
+  setSelectedUserId: (id: string) => void;
 }
 
-const CalendarContext = createContext({} as ICalendarContext);
+const CalendarContext = createContext<ICalendarContext | undefined>(undefined);
 
-const WORKING_HOURS = {
-  0: { from: 0, to: 0 },
-  1: { from: 8, to: 17 },
-  2: { from: 8, to: 17 },
-  3: { from: 8, to: 17 },
-  4: { from: 8, to: 17 },
-  5: { from: 8, to: 17 },
-  6: { from: 8, to: 12 },
-};
+export function CalendarProvider({ children }: { children: ReactNode }) {
+  const [events, setEvents] = useState<IEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedUserId, setSelectedUserId] = useState<string>("all");
+  const router = useRouter();
 
-const VISIBLE_HOURS = { from: 7, to: 18 };
-
-export function CalendarProvider({ children, users, events }: { children: React.ReactNode; users: IUser[]; events: IEvent[] }) {
-  const [badgeVariant, setBadgeVariant] = useState<TBadgeVariant>("colored");
-  const [visibleHours, setVisibleHours] = useState<TVisibleHours>(VISIBLE_HOURS);
-  const [workingHours, setWorkingHours] = useState<TWorkingHours>(WORKING_HOURS);
-
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedUserId, setSelectedUserId] = useState<IUser["id"] | "all">("all");
-
-  // This localEvents doesn't need to exists in a real scenario.
-  // It's used here just to simulate the update of the events.
-  // In a real scenario, the events would be updated in the backend
-  // and the request that fetches the events should be refetched
-  const [localEvents, setLocalEvents] = useState<IEvent[]>(events);
-
-  const handleSelectDate = (date: Date | undefined) => {
-    if (!date) return;
-    setSelectedDate(date);
+  // ── Define all functions first ──
+  const checkUser = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    setUser(session?.user ?? null);
   };
 
-  const addEvent = (event: IEvent) => {
-    setLocalEvents(prev => {
-      console.log("CalendarProvider - addEvent called. Before:", prev.length);
-      const updated = [...prev, event];
-      console.log("CalendarProvider - addEvent. After:", updated.length, updated);
+  const loadEvents = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.from("events").select("*").order("start_date", { ascending: true });
 
-      if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
-        try {
-          localStorage.setItem("lastAddedEventId", String(event.id));
-          console.log("CalendarProvider - stored lastAddedEventId:", event.id);
-        } catch (e) {
-          console.warn("CalendarProvider - unable to write lastAddedEventId to localStorage");
-        }
+      if (error) throw error;
+
+      const transformedEvents: IEvent[] = (data || []).map((event: any) => ({
+        id: event.id,
+        title: event.title,
+        description: event.description || "",
+        startDate: event.start_date,
+        endDate: event.end_date,
+        color: event.color,
+        user: {
+          id: event.user_id,
+          name: user?.email?.split("@")[0] || "User",
+          email: user?.email || "",
+          picturePath: "",
+        },
+      }));
+
+      setEvents(transformedEvents);
+    } catch (error) {
+      console.error("Error loading events:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addEvent = async (event: Omit<IEvent, "id">) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase
+        .from("events")
+        .insert([
+          {
+            user_id: userData.user.id,
+            title: event.title,
+            description: event.description,
+            start_date: event.startDate,
+            end_date: event.endDate,
+            color: event.color,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newEvent: IEvent = {
+        id: data.id,
+        title: data.title,
+        description: data.description || "",
+        startDate: data.start_date,
+        endDate: data.end_date,
+        color: data.color,
+        user: event.user,
+      };
+
+      setEvents(prev => [...prev, newEvent]);
+    } catch (error) {
+      console.error("Error adding event:", error);
+      throw error;
+    }
+  };
+
+  const updateEvent = async (id: number, eventUpdate: Partial<IEvent>) => {
+    try {
+      const updateData: any = {};
+      if (eventUpdate.title) updateData.title = eventUpdate.title;
+      if (eventUpdate.description) updateData.description = eventUpdate.description;
+      if (eventUpdate.startDate) updateData.start_date = eventUpdate.startDate;
+      if (eventUpdate.endDate) updateData.end_date = eventUpdate.endDate;
+      if (eventUpdate.color) updateData.color = eventUpdate.color;
+
+      const { error } = await supabase.from("events").update(updateData).eq("id", id);
+
+      if (error) throw error;
+
+      setEvents(prev =>
+        prev.map(event =>
+          event.id === id
+            ? { ...event, ...eventUpdate, startDate: eventUpdate.startDate || event.startDate, endDate: eventUpdate.endDate || event.endDate }
+            : event
+        )
+      );
+    } catch (error) {
+      console.error("Error updating event:", error);
+      throw error;
+    }
+  };
+
+  const deleteEvent = async (id: number) => {
+    try {
+      const { error } = await supabase.from("events").delete().eq("id", id);
+
+      if (error) throw error;
+
+      setEvents(prev => prev.filter(event => event.id !== id));
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      throw error;
+    }
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setEvents([]);
+    router.push("/login");
+  };
+
+  // ── Value object after all functions are defined ──
+  const value: ICalendarContext = {
+    events,
+    addEvent,
+    updateEvent,
+    deleteEvent,
+    isLoading,
+    user,
+    signOut,
+    selectedDate,
+    setSelectedDate,
+    selectedUserId,
+    setSelectedUserId,
+  };
+
+  useEffect(() => {
+    checkUser();
+    loadEvents();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        loadEvents();
+      } else {
+        setEvents([]);
+        router.push("/login");
       }
-
-      return updated;
     });
-  };
 
-  return (
-    <CalendarContext.Provider
-      value={{
-        selectedDate,
-        setSelectedDate: handleSelectDate,
-        selectedUserId,
-        setSelectedUserId,
-        badgeVariant,
-        setBadgeVariant,
-        users,
-        visibleHours,
-        setVisibleHours,
-        workingHours,
-        setWorkingHours,
-        // If you go to the refetch approach, you can remove the localEvents and pass the events directly
-        events: localEvents,
-        setLocalEvents,
-        addEvent,
-      }}
-    >
-      {children}
-    </CalendarContext.Provider>
-  );
+    return () => subscription.unsubscribe();
+  }, []);
+
+  return <CalendarContext.Provider value={value}>{children}</CalendarContext.Provider>;
 }
 
-export function useCalendar(): ICalendarContext {
+export function useCalendar() {
   const context = useContext(CalendarContext);
-  if (!context) throw new Error("useCalendar must be used within a CalendarProvider.");
+  if (context === undefined) {
+    throw new Error("useCalendar must be used within a CalendarProvider");
+  }
   return context;
 }

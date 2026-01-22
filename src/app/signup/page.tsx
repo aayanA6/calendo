@@ -24,7 +24,7 @@ export default function SignupPage() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/` },
+      options: { emailRedirectTo: `${window.location.origin}/calendar` },
     });
 
     if (error) {
@@ -41,7 +41,7 @@ export default function SignupPage() {
         <div className="w-full max-w-md space-y-6 rounded-xl border border-gray-800 bg-gray-900/80 p-8 text-center shadow-2xl backdrop-blur-sm">
           <h2 className="text-3xl font-bold text-green-400">Check your email</h2>
           <p className="text-gray-300">We've sent a confirmation link. Check your inbox (and spam).</p>
-          <Button onClick={() => router.push("/login")} className="mt-4 bg-indigo-600 hover:bg-indigo-500">
+          <Button onClick={() => router.push("/calendar")} className="mt-4 bg-indigo-600 hover:bg-indigo-500">
             Go to Login
           </Button>
         </div>

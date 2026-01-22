@@ -30,7 +30,6 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
   const [selectedUserId, setSelectedUserId] = useState<string>("all");
   const router = useRouter();
 
-  // ── Define all functions first ──
   const checkUser = async () => {
     const {
       data: { session },
@@ -97,7 +96,12 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
         startDate: data.start_date,
         endDate: data.end_date,
         color: data.color,
-        user: event.user,
+        user: {
+          id: userData.user.id,
+          name: user?.email?.split("@")[0] || "User",
+          email: user?.email || "",
+          picturePath: "",
+        },
       };
 
       setEvents(prev => [...prev, newEvent]);
@@ -120,13 +124,7 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
 
-      setEvents(prev =>
-        prev.map(event =>
-          event.id === id
-            ? { ...event, ...eventUpdate, startDate: eventUpdate.startDate || event.startDate, endDate: eventUpdate.endDate || event.endDate }
-            : event
-        )
-      );
+      setEvents(prev => prev.map(event => (event.id === id ? { ...event, ...eventUpdate } : event)));
     } catch (error) {
       console.error("Error updating event:", error);
       throw error;
@@ -152,7 +150,6 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   };
 
-  // ── Value object after all functions are defined ──
   const value: ICalendarContext = {
     events,
     addEvent,

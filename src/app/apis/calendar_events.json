@@ -1,5 +1,5 @@
 {
   "events": [],
-  "error": "No dates found",
-  "reason": "The text does not contain any recognizable calendar dates. Events cannot be extracted without specific dates like 'January 15, 2026' or '01/15/2026'."
+  "error": "No valid events extracted",
+  "reason": "While the text contains dates, no valid calendar events could be extracted. Event 1: Error - expected string or bytes-like object, got 'NoneType'; Event 2: Error - expected string or bytes-like object, got 'NoneType'; Event 'Project deadline March 1st': Missing start date; Event 4: Error - expected string or bytes-like object, got 'NoneType'"
 }

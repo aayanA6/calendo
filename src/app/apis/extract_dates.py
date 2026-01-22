@@ -3,8 +3,23 @@ import json
 import re
 
 # Read the text file
-with open('src/app/apis/userInput.txt', 'r', encoding='utf-8') as f:
-    text = f.read()
+try:
+    with open('src/app/apis/userInput.txt', 'r', encoding='utf-8') as f:
+        text = f.read()
+    
+    print(f"DEBUG: Read {len(text)} characters from file")
+    print(f"DEBUG: First 200 chars: {text[:200]}")
+    
+except FileNotFoundError:
+    error_response = {
+        "events": [],
+        "error": "File not found",
+        "reason": "The userInput.txt file was not found. Please upload a file first."
+    }
+    print(json.dumps(error_response))
+    with open('src/app/apis/calendar_events.json', 'w', encoding='utf-8') as f:
+        json.dump(error_response, f, indent=2)
+    exit(0)
 
 if not text or text.strip() == "":
     error_response = {
@@ -72,13 +87,29 @@ if not has_specific_dates(text):
 # Create VERY strict prompt for Ollama
 prompt = f"""You are a JSON-only calendar event extraction system. You must ONLY output valid JSON, nothing else.
 
-Extract ALL events and dates from this text: {text}
+Extract ALL FUTURE EVENTS and relevant dates from this text: {text}
 
-CRITICAL RULES:
-1. ONLY extract events that have SPECIFIC CALENDAR DATES mentioned in the text
-2. DO NOT make up or infer dates that aren't explicitly stated
-3. DO NOT convert relative dates like "Week 1" or "next Monday" into specific dates
-4. If a date is vague or unclear, DO NOT include that event
+CRITICAL CONTEXT RULES:
+1. ONLY extract events that are ACTIONABLE and FUTURE-ORIENTED
+2. DO NOT extract historical dates (birthdates, past events, historical facts)
+3. DO NOT extract dates mentioned in examples, stories, or background information
+4. Focus on: deadlines, appointments, meetings, assignments, tasks, scheduled activities
+5. Ignore: birthdates, graduation dates (unless it's upcoming), historical events, casual mentions
+
+WHAT TO EXTRACT:
+✅ "Essay due February 5, 2026" → EXTRACT (it's a deadline)
+✅ "Meeting on January 20 at 2pm" → EXTRACT (it's a scheduled event)
+✅ "Project deadline March 1st" → EXTRACT (it's an action item)
+✅ "Exam on February 15" → EXTRACT (it's a future event)
+✅ "Dentist appointment next Tuesday" → EXTRACT IF specific date given
+✅ "Vacation from March 10-17" → EXTRACT (it's a planned event)
+
+WHAT NOT TO EXTRACT:
+❌ "I was born February 2, 1999" → IGNORE (birthdate/historical)
+❌ "Graduated in June 2020" → IGNORE (past event)
+❌ "Founded in 1995" → IGNORE (historical fact)
+❌ "For example, January 1st is New Year" → IGNORE (example/general reference)
+❌ "Week 1, Week 2" without specific dates → IGNORE (relative dates)
 
 STRICT OUTPUT FORMAT:
 {{
@@ -96,12 +127,14 @@ STRICT OUTPUT FORMAT:
 
 EXTRACTION RULES:
 1. Output ONLY valid JSON - no explanations, no markdown
-2. Use the EXACT year mentioned in the text (default to 2026 ONLY if year is not specified but specific date is)
+2. Use the EXACT year mentioned in the text (default to 2026 for future events without a year)
 3. If event spans multiple days, set different start/end dates
 4. Use null for missing times
 5. Use 24-hour time format (00:00 to 23:59)
 6. All dates MUST be dates that appear in the original text
 7. DO NOT HALLUCINATE DATES - if a specific date isn't in the text, don't include that event
+8. Look for ACTION VERBS: "due", "deadline", "meeting", "appointment", "exam", "submit", "scheduled"
+9. Prioritize imperative/future tense over past tense
 
 OUTPUT ONLY THE JSON - START WITH {{ and END WITH }}"""
 
@@ -112,7 +145,9 @@ try:
         messages=[
             {
                 'role': 'system',
-                'content': 'You are a strict date extraction system. You ONLY extract dates that are explicitly written in the text. You NEVER make up or infer dates. Output only valid JSON.'
+                'content': '''You are a smart calendar assistant. You extract ONLY actionable future events, not historical dates. 
+                You understand context: birthdates, past events, and historical facts are NOT calendar events. 
+                Focus on deadlines, appointments, meetings, and scheduled activities. Output only valid JSON.'''
             },
             {
                 'role': 'user',
@@ -120,7 +155,7 @@ try:
             }
         ],
         options={
-            'temperature': 0.0,  # Even lower - no creativity allowed
+            'temperature': 0.0,
             'top_p': 0.8,
         }
     )

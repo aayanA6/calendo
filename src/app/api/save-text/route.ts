@@ -6,11 +6,11 @@ export async function POST(request: Request) {
   try {
     const { text } = await request.json();
     
-    // Remove all whitespace, newlines, tabs, and indentation
-    const cleanedText = text.replace(/\s+/g, '');
+    // DON'T remove spaces - we need them for date detection!
+    // Just save the text as-is
     
     const filePath = join(process.cwd(), 'src', 'app', 'apis', 'userInput.txt');
-    await writeFile(filePath, cleanedText, 'utf-8');
+    await writeFile(filePath, text, 'utf-8');
     
     return NextResponse.json({ success: true, path: filePath });
   } catch (error) {

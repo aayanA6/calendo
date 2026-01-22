@@ -28,7 +28,7 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
     } else {
-      router.replace("/");
+      router.replace("/calendar");
     }
     setLoading(false);
   };

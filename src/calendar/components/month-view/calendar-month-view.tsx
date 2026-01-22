@@ -1,3 +1,5 @@
+"use client";
+
 import { useMemo } from "react";
 
 import { useCalendar } from "@/calendar/contexts/calendar-context";
@@ -16,7 +18,10 @@ interface IProps {
 const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function CalendarMonthView({ singleDayEvents, multiDayEvents }: IProps) {
-  const { selectedDate } = useCalendar();
+  const { selectedDate, user } = useCalendar();
+
+  // Prevent rendering until user exists (ProtectedRoute should handle this, but extra safety)
+  if (!user) return null;
 
   const allEvents = [...multiDayEvents, ...singleDayEvents];
 

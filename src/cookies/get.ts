@@ -1,14 +1,15 @@
 import { cookies } from "next/headers";
 
-import { THEMES_VALUES } from "@/constants/theme.const";
-import { DEFAULT_VALUES } from "@/constants/cookies.const";
-import { THEME_COOKIE_NAME } from "@/constants/cookies.const";
+const THEME_COOKIE_NAME = "theme";
+type TTheme = "light" | "dark";
 
-export type TTheme = (typeof THEMES_VALUES)[number];
-
-export function getTheme(): TTheme {
-  const cookieStore = cookies();
-  const theme = cookieStore.get(THEME_COOKIE_NAME)?.value;
-  if (!THEMES_VALUES.includes(theme as TTheme)) return DEFAULT_VALUES.theme as TTheme;
-  return theme as TTheme;
+export async function getTheme(): Promise<TTheme> {
+  const cookieStore = await cookies();
+  const theme = cookieStore.get(THEME_COOKIE_NAME)?.value as TTheme;
+  
+  if (theme !== "light" && theme !== "dark") {
+    return "light"; // default
+  }
+  
+  return theme;
 }

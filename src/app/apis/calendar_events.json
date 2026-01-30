@@ -1,5 +1,36 @@
 {
-  "events": [],
-  "error": "No valid events extracted",
-  "reason": "While the text contains dates, no valid calendar events could be extracted. Event 1: Error - expected string or bytes-like object, got 'NoneType'; Event 2: Error - expected string or bytes-like object, got 'NoneType'; Event 'Project deadline March 1st': Missing start date; Event 4: Error - expected string or bytes-like object, got 'NoneType'"
+  "events": [
+    {
+      "title": "Dentist appointment",
+      "description": "quick dentist appointment",
+      "startDate": "2026-01-17",
+      "endDate": "2026-01-17",
+      "startTime": null,
+      "endTime": null
+    },
+    {
+      "title": "Team check-in meeting",
+      "description": "short team check-in meeting",
+      "startDate": "2026-01-19",
+      "endDate": "2026-01-19",
+      "startTime": null,
+      "endTime": null
+    },
+    {
+      "title": "Gym workout",
+      "description": "gym workout scheduled for the evening",
+      "startDate": "2026-01-27",
+      "endDate": "2026-01-27",
+      "startTime": "18:00",
+      "endTime": null
+    },
+    {
+      "title": "Advisor meeting",
+      "description": "brief advisor meeting",
+      "startDate": "2026-02-03",
+      "endDate": "2026-02-03",
+      "startTime": null,
+      "endTime": null
+    }
+  ]
 }

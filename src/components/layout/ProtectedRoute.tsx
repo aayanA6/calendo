@@ -1,30 +1,22 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { useSession } from "next-auth/react";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [session, setSession] = useState<any>(null);
+  const { status } = useSession();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    const checkUser = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+    if (status === "loading") return;
 
-      if (!session?.user) {
-        router.replace("/login"); // redirect immediately
-      } else {
-        setSession(session);
-      }
-
-      setChecked(true); // we finished checking
-    };
-
-    checkUser();
-  }, [router]);
+    if (status === "unauthenticated") {
+      router.replace("/login");
+    } else {
+      setChecked(true);
+    }
+  }, [status, router]);
 
   // nothing renders until we’ve checked the session
   if (!checked) return null;

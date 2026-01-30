@@ -1,9 +1,23 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { supabase } from "@/lib/supabase";
+import { useSession, signOut as nextAuthSignOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { IEvent } from "@/calendar/types";
+
+export interface IEvent {
+  id: number;
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  color: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    picturePath: string;
+  };
+}
 
 interface ICalendarContext {
   events: IEvent[];
@@ -13,7 +27,6 @@ interface ICalendarContext {
   isLoading: boolean;
   user: any;
   signOut: () => Promise<void>;
-
   selectedDate: Date;
   setSelectedDate: (date: Date) => void;
   selectedUserId: string;
@@ -25,41 +38,33 @@ const CalendarContext = createContext<ICalendarContext | undefined>(undefined);
 export function CalendarProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<IEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedUserId, setSelectedUserId] = useState<string>("all");
+  const { data: session, status } = useSession();
   const router = useRouter();
 
-  const checkUser = async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    setUser(session?.user ?? null);
-  };
+  useEffect(() => {
+    if (status === "authenticated") {
+      loadEvents();
+    } else if (status === "unauthenticated") {
+      // Only redirect if not on login/signup/forgot-password/reset-password pages
+      const protectedPages = ["/login", "/signup", "/forgot-password", "/reset-password"];
+      const currentPath = window.location.pathname;
+      if (!protectedPages.includes(currentPath)) {
+        router.push("/login");
+      }
+    }
+  }, [status, router]);
 
   const loadEvents = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase.from("events").select("*").order("start_date", { ascending: true });
+      const response = await fetch("/api/events");
 
-      if (error) throw error;
+      if (!response.ok) throw new Error("Failed to load events");
 
-      const transformedEvents: IEvent[] = (data || []).map((event: any) => ({
-        id: event.id,
-        title: event.title,
-        description: event.description || "",
-        startDate: event.start_date,
-        endDate: event.end_date,
-        color: event.color,
-        user: {
-          id: event.user_id,
-          name: user?.email?.split("@")[0] || "User",
-          email: user?.email || "",
-          picturePath: "",
-        },
-      }));
-
-      setEvents(transformedEvents);
+      const data = await response.json();
+      setEvents(data.events || []);
     } catch (error) {
       console.error("Error loading events:", error);
     } finally {
@@ -69,42 +74,16 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
 
   const addEvent = async (event: Omit<IEvent, "id">) => {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error("Not authenticated");
+      const response = await fetch("/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(event),
+      });
 
-      const { data, error } = await supabase
-        .from("events")
-        .insert([
-          {
-            user_id: userData.user.id,
-            title: event.title,
-            description: event.description,
-            start_date: event.startDate,
-            end_date: event.endDate,
-            color: event.color,
-          },
-        ])
-        .select()
-        .single();
+      if (!response.ok) throw new Error("Failed to add event");
 
-      if (error) throw error;
-
-      const newEvent: IEvent = {
-        id: data.id,
-        title: data.title,
-        description: data.description || "",
-        startDate: data.start_date,
-        endDate: data.end_date,
-        color: data.color,
-        user: {
-          id: userData.user.id,
-          name: user?.email?.split("@")[0] || "User",
-          email: user?.email || "",
-          picturePath: "",
-        },
-      };
-
-      setEvents(prev => [...prev, newEvent]);
+      const data = await response.json();
+      setEvents(prev => [...prev, data.event]);
     } catch (error) {
       console.error("Error adding event:", error);
       throw error;
@@ -113,18 +92,16 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
 
   const updateEvent = async (id: number, eventUpdate: Partial<IEvent>) => {
     try {
-      const updateData: any = {};
-      if (eventUpdate.title) updateData.title = eventUpdate.title;
-      if (eventUpdate.description) updateData.description = eventUpdate.description;
-      if (eventUpdate.startDate) updateData.start_date = eventUpdate.startDate;
-      if (eventUpdate.endDate) updateData.end_date = eventUpdate.endDate;
-      if (eventUpdate.color) updateData.color = eventUpdate.color;
+      const response = await fetch(`/api/events/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(eventUpdate),
+      });
 
-      const { error } = await supabase.from("events").update(updateData).eq("id", id);
+      if (!response.ok) throw new Error("Failed to update event");
 
-      if (error) throw error;
-
-      setEvents(prev => prev.map(event => (event.id === id ? { ...event, ...eventUpdate } : event)));
+      const data = await response.json();
+      setEvents(prev => prev.map(event => (event.id === id ? { ...event, ...data.event } : event)));
     } catch (error) {
       console.error("Error updating event:", error);
       throw error;
@@ -133,9 +110,11 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
 
   const deleteEvent = async (id: number) => {
     try {
-      const { error } = await supabase.from("events").delete().eq("id", id);
+      const response = await fetch(`/api/events/${id}`, {
+        method: "DELETE",
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error("Failed to delete event");
 
       setEvents(prev => prev.filter(event => event.id !== id));
     } catch (error) {
@@ -145,45 +124,30 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await nextAuthSignOut({ redirect: false });
     setEvents([]);
     router.push("/login");
   };
 
-  const value: ICalendarContext = {
-    events,
-    addEvent,
-    updateEvent,
-    deleteEvent,
-    isLoading,
-    user,
-    signOut,
-    selectedDate,
-    setSelectedDate,
-    selectedUserId,
-    setSelectedUserId,
-  };
-
-  useEffect(() => {
-    checkUser();
-    loadEvents();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadEvents();
-      } else {
-        setEvents([]);
-        router.push("/login");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  return <CalendarContext.Provider value={value}>{children}</CalendarContext.Provider>;
+  return (
+    <CalendarContext.Provider
+      value={{
+        events,
+        addEvent,
+        updateEvent,
+        deleteEvent,
+        isLoading,
+        user: session?.user,
+        signOut,
+        selectedDate,
+        setSelectedDate,
+        selectedUserId,
+        setSelectedUserId,
+      }}
+    >
+      {children}
+    </CalendarContext.Provider>
+  );
 }
 
 export function useCalendar() {

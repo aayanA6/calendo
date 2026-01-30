@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff } from "lucide-react";
@@ -20,88 +20,86 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const result = await signIn("credentials", {
       email,
       password,
+      redirect: false,
     });
 
-    if (error) {
-      setError(error.message);
+    if (result?.error) {
+      setError("Invalid email or password");
+      setLoading(false);
     } else {
-      router.replace("/calendar");
+      router.push("/");
+      router.refresh();
     }
-    setLoading(false);
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-950">
-      <div className="w-full max-w-md space-y-8 rounded-xl border border-gray-800 bg-gray-900/80 p-8 shadow-2xl backdrop-blur-sm">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-lg">
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-white">Sign in</h2>
-          <p className="mt-2 text-sm text-gray-400">
+          <h2 className="text-3xl font-bold text-gray-900">Welcome back</h2>
+          <p className="mt-2 text-sm text-gray-600">
             Don't have an account?{" "}
-            <a href="/signup" className="text-indigo-400 underline hover:text-indigo-300">
-              Create one
+            <a href="/signup" className="text-blue-600 hover:text-blue-500">
+              Sign up
             </a>
           </p>
         </div>
 
         <form onSubmit={handleLogin} className="mt-8 space-y-6">
-          {error && <div className="rounded-lg border border-red-800/50 bg-red-950/50 p-4 text-sm text-red-300">{error}</div>}
+          {error && (
+            <div className="rounded-md bg-red-50 p-4">
+              <p className="text-sm text-red-800">{error}</p>
+            </div>
+          )}
 
           <div className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email
               </label>
               <Input
                 id="email"
                 type="email"
-                autoComplete="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
                 disabled={loading}
-                className="mt-1 border-gray-700 bg-gray-800 text-white placeholder:text-gray-500 focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1"
+                placeholder="you@example.com"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
               </label>
               <div className="relative mt-1">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
                   disabled={loading}
-                  className="mt-1 border-gray-700 bg-gray-800 pr-10 text-white placeholder:text-gray-500 focus:border-indigo-500 focus:ring-indigo-500"
+                  className="pr-10"
+                  placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 focus:outline-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   disabled={loading}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-
-              {/* Forgot password link – best placement */}
-              <div className="mt-2 text-right">
-                <a href="/forgot-password" className="text-sm text-indigo-400 hover:text-indigo-300 hover:underline">
-                  Forgot password?
-                </a>
-              </div>
             </div>
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full bg-indigo-600 font-medium text-white hover:bg-indigo-500">
+          <Button type="submit" disabled={loading} className="w-full">
             {loading ? "Signing in..." : "Sign in"}
           </Button>
         </form>
